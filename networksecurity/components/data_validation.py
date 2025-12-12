@@ -6,7 +6,7 @@ from networksecurity.constant.training_pipeline import SCHEMA_FILE_PATH
 from scipy.stats import ks_2samp
 import pandas as pd
 import os, sys
-from networksecurity.utils.main_utils.utils import read_yaml_file
+from networksecurity.utils.main_utils.utils import read_yaml_file, write_yamal_file
 
 class DataValidation:
     def __init__(self, data_ingestion_artifact: DataIngestionArtifact, data_validation_config: DataValidationConfig):
@@ -56,6 +56,8 @@ class DataValidation:
             # create directory
             dir_path = os.path.dirname(drift_report_file_path)
             os.makedirs(dir_path, exist_ok=True)
+            write_yamal_file(file_path=drift_report_file_path, content=report)
+
         except Exception as e:
             raise NetworkSecurityException(e, sys)
         
@@ -77,10 +79,31 @@ class DataValidation:
                 error_message= (f" Test dataframe does not contain all columns \n")
 
             # lets check datadrift
-            status = 
+            status = self.detect_dataset_drift(base_df=train_dataframe, current_df=test_dataframe)
+            dir_path = os.path.dirname(self.data_validation_config.valid_train_file_path)
+            os.makedirs(dir_path, exist_ok=True)
+
+            train_dataframe.to_csv(
+                self.data_validation_config.valid_train_file_path, index=False, header=True
+            )
+
+            test_dataframe.to_csv(
+                self.data_validation_config.valid_test_file_path, index=False, header=True
+            )
+
+            data_validation_artifact = DataValidatonArtifact(
+                validation_status=status,
+                valid_train_file_path=self.data_ingestion_artifact.trained_file_path,
+                valid_test_file_path=self.data_ingestion_artifact.test_file_path,
+                invalid_train_file_path=None,
+                invalid_test_file_path=None,
+                drift_report_file_path=self.data_validation_config.drift_report_file_path
+            )
+
+            return data_validation_artifact
             
         except Exception as e:
             raise NetworkSecurityException(e, sys)
         
 
-# lecture 12, 17 minit
+# lecture 12
